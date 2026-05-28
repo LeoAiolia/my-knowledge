@@ -16,18 +16,30 @@
 - 统一使用 `.md` 格式。
 - 正文语言：**中文为主**；变量 / 函数 / 类名等标识符用英文。
 
-### 2. 目录结构（按主题分类）
+### 2. 目录结构
+
+**开发相关 → `develop/`**
+
+所有与开发有关的知识统一放在 `develop/` 下，按平台 / 主题分子目录：
 
 | 目录 | 主题 |
 |---|---|
-| `flutter/` | Dart / Flutter |
-| `ios/` | Swift / iOS |
-| `android/` | Kotlin / Android |
-| `tools/` | 工具链、git、CI、编辑器、CLI、Claude Code |
-| `general/` | 跨领域 / 其他 |
+| `develop/flutter/` | Dart / Flutter |
+| `develop/ios/` | Swift / iOS |
+| `develop/android/` | Kotlin / Android |
 
-- 出现新主题时可新增顶层目录。
-- **以单层目录为主**，避免过深嵌套；同一主题下文件较多时再酌情建二级目录。
+其他开发主题（如 `develop/tools/` 工具链）按需新增。
+
+**非开发相关 → 根目录子文件夹**
+
+随手记、生活技能、文档整理等与开发无关的内容，在根目录新建对应文件夹（如 `notes/`、`life/`、`docs/`）。**目前不预建，用到再建。**
+
+**空目录与图片**
+
+- 空目录用 `.gitkeep` 占位，保证能提交到远端。
+- 图片等资源放在所属主题目录下的 `assets/` 子目录，文件名同样 kebab-case。
+  例：`develop/flutter/assets/provider-flow.png`
+- **以单层主题目录为主**，避免过深嵌套。
 
 ### 3. 文件模板
 
