@@ -75,3 +75,4 @@
 ### develop / ios
 
 - [ios-dev-tools](develop/ios/ios-dev-tools.md) — iOS 开发工具（UDID 查询等）
+- [inappwebview-orderedset-library-evolution-crash](develop/ios/inappwebview-orderedset-library-evolution-crash.md) — 预编译 flutter_inappwebview_ios 加载 WebView 崩溃（Library Evolution ABI 不对称）
