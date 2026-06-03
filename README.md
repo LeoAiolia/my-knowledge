@@ -72,6 +72,11 @@
 
 ## 目录
 
+### develop / flutter
+
+- **faraday_reborn**
+  - [list-search-filter](develop/flutter/faraday_reborn/list-search-filter.md) — 列表搜索框（per-tab 模式 + 多 tab 共享模式）
+
 ### develop / ios
 
 - [ios-dev-tools](develop/ios/ios-dev-tools.md) — iOS 开发工具（UDID 查询等）
