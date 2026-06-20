@@ -23,6 +23,9 @@
   - `develop/ios/` — Swift / iOS
   - `develop/android/` — Kotlin / Android
   - 其他开发主题（如 `develop/tools/` 工具链）按需新增。
+- **自学相关 → `study/`**，按主题分子目录（编程语言、计算机基础、外语等），用到再建。
+- **工作相关 → `work/`**，按公司 / 项目分子目录：
+  - `work/yxr/` — 寓小二（当前公司）
 - **非开发相关 → 根目录子文件夹**（随手记、生活技能、文档整理等），如 `notes/`、`life/`、`docs/`；用到再建、不预建。
 - 空目录用 `.gitkeep` 占位，保证能提交到远端。
 - 图片等资源放在所属主题目录下的 `assets/` 子目录（kebab-case），如 `develop/flutter/assets/provider-flow.png`。
