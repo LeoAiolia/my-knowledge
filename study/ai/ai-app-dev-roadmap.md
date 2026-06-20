@@ -19,7 +19,7 @@
 | 阶段 | 主题 | 时间 | 核心输出 |
 |------|------|------|----------|
 | P0 | AI 基础认知 | 1 周 | 理解 LLM 工作原理、Token/Context/Embedding 等核心概念 |
-| P1 | API 集成入门 | 2 周 | Flutter App 接入 Claude/GPT API，实现 streaming chat |
+| P1 | API 集成入门 | 2 周 | Flutter App 接入 DeepSeek API，实现 streaming chat |
 | P2 | 工具调用与 Agent | 3 周 | Function Calling → 多步 Agent → MCP 集成 |
 | P3 | RAG 与知识检索 | 3 周 | 本地向量检索 + 云端 LLM 的混合应用 |
 | P4 | 端侧推理 | 4 周 | Core ML / llama.cpp 移动端部署 |
@@ -38,16 +38,16 @@
 | 主题 | 要点 | 参考资源 |
 |------|------|----------|
 | LLM 工作原理 | Autoregressive、Token、Embedding、Attention（只需概念层面，不推导数学） | 3Blue1Brown 可视化视频 |
-| 核心概念 | Context Window、Temperature、Top-P、System Prompt vs User Prompt | Anthropic / OpenAI 官方文档 |
-| 模型谱系 | Claude / GPT / Gemini / 开源模型（Llama、Qwen）的能力差异与适用场景 | 各厂商模型卡 |
-| Token 经济 | 输入/输出 Token 如何计算、缓存命中、成本估算 | 官方定价页 |
-| Prompt 基础 | 系统提示词设计、少样本示例、思维链 | Anthropic Prompt Engineering Guide |
+| 核心概念 | Context Window、Temperature、Top-P、System Prompt vs User Prompt | DeepSeek / OpenAI 官方文档 |
+| 模型谱系 | DeepSeek / Claude / GPT / Gemini / 开源模型（Llama、Qwen）的能力差异与适用场景 | 各厂商模型卡 |
+| Token 经济 | 输入/输出 Token 如何计算、缓存命中、成本估算 | DeepSeek 官方定价页 |
+| Prompt 基础 | 系统提示词设计、少样本示例、思维链 | DeepSeek Prompt 指南 + Anthropic Prompt Engineering Guide |
 
 ### 实践
 
-- [ ] 分别在 Claude.ai、ChatGPT、Gemini 里完成同一个复杂任务，对比效果
-- [ ] 算一笔账：一个 100 轮对话的客服 App 大概花多少钱
-- [ ] 阅读 Anthropic 的 [Prompt Engineering Guide](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)
+- [ ] 分别在 DeepSeek Chat、Claude.ai、ChatGPT 里完成同一个复杂任务，对比效果
+- [ ] 算一笔账：一个 100 轮对话的客服 App 大概花多少钱（对比 DeepSeek vs Claude 成本）
+- [ ] 阅读 [DeepSeek API 文档](https://platform.deepseek.com/api-docs/) 了解模型能力和调用方式
 
 ### 输出
 
@@ -59,7 +59,17 @@
 
 ### 目标
 
-在 Flutter App 里跑通 Claude / GPT API 的 streaming chat。
+在 Flutter App 里跑通 DeepSeek API 的 streaming chat。
+
+### 为什么选 DeepSeek 作为主力 API
+
+| 优势 | 说明 |
+|------|------|
+| OpenAI 兼容格式 | 市面教程/工具/SDK 几乎零成本适配 |
+| 国内直连 | 无需翻墙，开发调试体验顺畅 |
+| 中文能力顶级 | 中文场景回复质量优于多数海外模型 |
+| 价格极低 | 约 ¥1/百万 Token，学习期随意调用不心疼 |
+| 支持完整 | Chat / Streaming / Function Calling / JSON Mode 均已支持 |
 
 ### 学习内容
 
@@ -74,7 +84,7 @@
 ### 技术选型
 
 ```
-后端方案 A：客户端直连 API（快速原型用）
+后端方案 A：客户端直连 DeepSeek API（快速原型用）
 后端方案 B：自建中转服务（生产环境推荐，保护 API Key + 可做审计/限流）
 ```
 
@@ -83,23 +93,46 @@
 ### 核心代码形态
 
 ```dart
-// 典型的 streaming chat 调用
+// DeepSeek API 兼容 OpenAI 格式，streaming chat 调用示例
 final client = http.Client();
-final request = http.Request('POST', Uri.parse('https://api.anthropic.com/v1/messages'));
-request.headers['x-api-key'] = apiKey;
-request.headers['anthropic-version'] = '2023-06-01';
+final request = http.Request(
+  'POST',
+  Uri.parse('https://api.deepseek.com/v1/chat/completions'),
+);
+request.headers['Authorization'] = 'Bearer $apiKey';
+request.headers['Content-Type'] = 'application/json';
 request.body = jsonEncode({
-  'model': 'claude-sonnet-4-6',
+  'model': 'deepseek-chat',           // DeepSeek-V3，性价比主力
+  // 'model': 'deepseek-reasoner',    // DeepSeek-R1，复杂推理场景
   'max_tokens': 4096,
   'stream': true,
-  'messages': [/*...*/],
+  'messages': [
+    {'role': 'system', 'content': '你是一个有帮助的助手。'},
+    {'role': 'user', 'content': '你好，介绍一下你自己。'},
+  ],
 });
 
 final response = await client.send(request);
 await for (final chunk in response.stream.transform(utf8.decoder)) {
-  // 解析 SSE → 更新 UI
+  // SSE 格式：data: {"choices":[{"delta":{"content":"你好"}}]}\n\n
+  for (final line in chunk.split('\n')) {
+    if (line.startsWith('data: ') && !line.startsWith('data: [DONE]')) {
+      final json = jsonDecode(line.substring(6));
+      final content = json['choices']?[0]?['delta']?['content'];
+      if (content != null) {
+        // 追加到消息文本 → 更新 UI
+      }
+    }
+  }
 }
 ```
+
+### DeepSeek 模型选择速查
+
+| 模型 | 适用场景 | 特点 |
+|------|----------|------|
+| `deepseek-chat`（V3） | 日常对话、内容生成、工具调用 | 速度快、成本最低、P1-P3 主力 |
+| `deepseek-reasoner`（R1） | 复杂推理、数学、代码分析 | 自带 CoT 思维链，慢但深度高 |
 
 ### 实践项目：AI Chat Demo
 
@@ -109,6 +142,7 @@ await for (final chunk in response.stream.transform(utf8.decoder)) {
 - [ ] Markdown 消息渲染
 - [ ] 错误与重试处理
 - [ ] System Prompt 可配置
+- [ ] 模型切换开关（deepseek-chat / deepseek-reasoner）
 
 ### 输出
 
@@ -137,11 +171,13 @@ await for (final chunk in response.stream.transform(utf8.decoder)) {
 
 ```
 用户发送消息
-  → LLM 判断是否需要调用 Tool（返回 tool_use block）
+  → DeepSeek 判断是否需要调用 Tool（返回 finish_reason: "tool_calls"）
     → App 执行 Tool（读数据库 / 调 API / 操作设备）
-      → 结果回传给 LLM（tool_result block）
-        → LLM 继续推理，决定：继续调 Tool / 生成最终回答
+      → 结果回传给 DeepSeek（role: "tool" 消息）
+        → DeepSeek 继续推理，决定：继续调 Tool / 生成最终回答
 ```
+
+> **DeepSeek Function Calling 与 OpenAI 完全兼容**，`tools` 参数用 JSON Schema 定义，返回 `tool_calls` 数组。可直接参考 OpenAI 的 Function Calling 文档来学习，模式完全一致。
 
 ### 实践项目：智能日记 App
 
@@ -151,7 +187,7 @@ await for (final chunk in response.stream.transform(utf8.decoder)) {
   - `get_weather` — 获取当前天气（结合日记上下文）
   - `analyze_mood` — 分析近期情绪趋势
 - [ ] 多 Tool 串联：用户说「帮我记一下今天的事，查查上周同一天写了什么，对比一下心情」
-- [ ] 结构化输出：让 LLM 返回固定 Schema 的情绪分析 JSON
+- [ ] 结构化输出：用 `response_format: {"type": "json_object"}` 让 DeepSeek 返回固定 Schema 的 JSON
 
 ### 输出
 
@@ -170,12 +206,24 @@ await for (final chunk in response.stream.transform(utf8.decoder)) {
 
 | 主题 | 要点 |
 |------|------|
-| Embedding | 文本转向量的概念、常用模型（text-embedding-3-small 等） |
+| Embedding | 文本转向量的概念、常用模型选择（见下方说明） |
 | 向量数据库 | 选型对比：SQLite + 向量扩展（sqlite-vec） vs Pinecone vs Qdrant |
 | 文档处理 | PDF/HTML/Markdown 解析、Text Chunking 策略（固定长度 / 语义分块） |
 | 检索策略 | 语义检索 / 关键词混合检索（BM25 + Vector）、Re-rank |
 | RAG Pipeline | Ingest（分割→向量化→存储）→ Retrieve（查询→检索→重排）→ Augment（组装 Prompt）→ Generate |
 | 高级 RAG | Query Rewrite、HyDE、Self-RAG、多轮对话中的上下文拼接 |
+
+### Embedding 模型选择
+
+> **注意：DeepSeek 目前不提供 Embedding API**，需要选其他方案。
+
+| 方案 | 模型 | 说明 |
+|------|------|------|
+| 云端（推荐入门） | OpenAI `text-embedding-3-small` | 便宜（$0.02/1M Token）、效果好；需翻墙或用代理 |
+| 云端（国内） | 阿里通义 `text-embedding-v3` | 国内直连、中文效果好、有免费额度 |
+| 本地（进阶） | all-MiniLM-L6-v2 → Core ML | 完全离线、隐私保护、P4 阶段做 |
+
+> P3 阶段先用通义 Embedding（国内直连最省心）；P4 阶段再切入本地 Embedding。
 
 ### 移动端特别考量
 
@@ -250,7 +298,7 @@ await for (final chunk in response.stream.transform(utf8.decoder)) {
 |------|------|
 | 后端中转服务 | 自建 API Gateway（Node.js/Python/Go）、限流、鉴权、审计日志 |
 | SSE/WebSocket | 长连接管理、断线重连、心跳 |
-| 多模型路由 | 按任务类型 / 成本 / 延迟选模型（Claude 复杂推理 / Haiku 简单任务） |
+| 多模型路由 | 按任务类型 / 成本 / 延迟选模型（deepseek-chat 日常 / deepseek-reasoner 复杂推理 / 本地小模型离线） |
 | Prompt 管理 | Prompt 版本控制、A/B 测试、线上热更新 |
 | 可观测性 | Token 用量追踪、错误率、P99 延迟、用户反馈闭环 |
 | 安全合规 | API Key 保护、用户数据脱敏、App Store 审核注意点 |
@@ -283,8 +331,9 @@ Week:     1          2-3         5-7          8-10         11-14       15+
 
 ### 官方文档（精读）
 
-- [Anthropic Claude API Docs](https://docs.anthropic.com/en/api) — 你的主力 API
-- [OpenAI API Docs](https://platform.openai.com/docs) — Function Calling 部分写得最好
+- [DeepSeek API 文档](https://platform.deepseek.com/api-docs/) — 主力 API，Chat/Streaming/Function Calling/JSON Mode
+- [OpenAI API Docs](https://platform.openai.com/docs) — Function Calling 部分写得最好，DeepSeek 完全兼容，可直接参考
+- [Anthropic Claude API Docs](https://docs.anthropic.com/en/api) — 作为对比参考，Prompt Engineering 指南质量高
 - [Apple Machine Learning](https://developer.apple.com/machine-learning/) — Core ML / Create ML
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) — 端侧推理基石
 
@@ -298,6 +347,29 @@ Week:     1          2-3         5-7          8-10         11-14       15+
 
 - [Attention Is All You Need](https://arxiv.org/abs/1706.03762) — Transformer 源头
 - [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks](https://arxiv.org/abs/2005.11401) — RAG 起源
+
+---
+
+## DeepSeek 注意事项
+
+### 当前能力边界（2026-06）
+
+| 能力 | 支持情况 | 说明 |
+|------|----------|------|
+| Chat / Streaming | ✅ 完全支持 | 兼容 OpenAI 格式 |
+| Function Calling | ✅ 完全支持 | `tools` + `tool_choice`，与 OpenAI 一致 |
+| JSON Mode | ✅ 完全支持 | `response_format: {"type": "json_object"}` |
+| 64K Context | ✅ 支持 | deepseek-chat 默认 64K |
+| Vision（图片理解） | ❌ 不支持 | 纯文本模型，需图片场景用 GPT-4o / Claude |
+| Embedding | ❌ 不提供 | P3 阶段用通义/OpenAI Embedding 替代 |
+| Fine-tuning | ❌ 不提供 | 应用层开发一般不需要 |
+
+### 关键注意点
+
+1. **R1 的思维链不可见**：`deepseek-reasoner` 默认不返回 CoT 内容（出于安全策略），你只能拿到最终回答。如果需要调试推理过程，考虑用开源模型本地跑。
+2. **Prompt 注入敏感**：DeepSeek 对 System Prompt 注入的抵抗力弱于 Claude，生产环境需要加输入清洗 + 输出过滤。
+3. **服务稳定性**：高峰期偶有延迟波动，生产环境务必加重试机制和降级方案（切换到备用模型）。
+4. **数据隐私**：API 数据默认经过 DeepSeek 服务器，涉密/涉敏场景考虑纯端侧方案（P4）。
 
 ---
 
