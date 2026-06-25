@@ -30,6 +30,18 @@
 
 其他开发主题（如 `develop/tools/` 工具链）按需新增。
 
+**自学相关 → `study/`**
+
+自学内容（编程语言、计算机基础、外语等）统一放在 `study/` 下，按主题分子目录，用到再建。
+
+**工作相关 → `work/`**
+
+工作相关内容按公司 / 项目分子目录：
+
+| 目录 | 主题 |
+|---|---|
+| `work/yxr/` | 寓小二（当前公司） |
+
 **非开发相关 → 根目录子文件夹**
 
 随手记、生活技能、文档整理等与开发无关的内容，在根目录新建对应文件夹（如 `notes/`、`life/`、`docs/`）。**目前不预建，用到再建。**
@@ -86,3 +98,7 @@
 ### develop / protocol
 
 - [server-driven-dialog](develop/protocol/server-driven-dialog.md) — 服务端驱动弹框协议（`YE-DIALOG` + `data`，按钮跳转用 `appRouter`（参数拼 `?` 后）走 `openServerDialogRouter`，App/PC 共用，改弹框不发版）
+
+### study / ai
+
+- [ai-app-dev-roadmap](study/ai/ai-app-dev-roadmap.md) — AI 应用层开发学习路线图（基于 iOS/Flutter 背景，6 阶段进阶）
