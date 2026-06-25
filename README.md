@@ -82,3 +82,7 @@
 
 - [ios-dev-tools](develop/ios/ios-dev-tools.md) — iOS 开发工具（UDID 查询等）
 - [inappwebview-orderedset-library-evolution-crash](develop/ios/inappwebview-orderedset-library-evolution-crash.md) — 预编译 flutter_inappwebview_ios 加载 WebView 崩溃（Library Evolution ABI 不对称）
+
+### develop / protocol
+
+- [server-driven-dialog](develop/protocol/server-driven-dialog.md) — 服务端驱动弹框协议（`YE-DIALOG` + `data`，按钮跳转用 `appRouter`（参数拼 `?` 后）走 `openServerDialogRouter`，App/PC 共用，改弹框不发版）
