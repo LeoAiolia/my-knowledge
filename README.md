@@ -105,4 +105,5 @@
 
 ### work / yxr
 
+- [projects-overview](work/yxr/projects-overview.md) — 寓小二主要负责的 APP 项目总览（B 端 / C 端 / CRM，项目名 + 类型 + 仓库地址）
 - [cc-docker-intro](work/yxr/cc-docker-intro.md) — 自定义 AI 开发 Docker 环境（tun2socks 透明代理 + Redis 配置同步 + Claude Code/Codex 容器化）
