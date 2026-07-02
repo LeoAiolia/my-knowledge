@@ -135,6 +135,12 @@ docker compose restart cli
 
 # 停止
 docker compose down
+
+# 更新镜像（env1/2 为 docker compose 别名，分别对应 .env 和 .env.cli2）
+env1 pull && env1 up -d && env2 up -d && docker image prune -a -f
+```
+
+> `env1 pull` 拉取最新镜像，`env1 up -d` 重建 cli 容器，`env2 up -d` 重建 cli2 容器，最后 `docker image prune -a -f` 清理旧镜像释放空间。
 ```
 
 ## 常见问题
