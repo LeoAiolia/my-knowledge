@@ -136,3 +136,15 @@ docker compose restart cli
 # 停止
 docker compose down
 ```
+
+## 常见问题
+
+### `Error: Claude native binary not installed`
+
+在容器内运行 `claude` 时报此错误，说明 CLI 原生二进制未安装或版本过旧。执行以下命令更新：
+
+```bash
+update-clis
+```
+
+该命令会拉取并安装最新的 Claude Code CLI 二进制，完成后即可正常使用。
