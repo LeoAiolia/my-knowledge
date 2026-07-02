@@ -130,7 +130,7 @@ docker exec -it cli zsh
 # 查看日志
 docker compose logs -f cli
 
-# 查看额度使用
+# 查看额度使用，docker内执行
 npx ccusage@latest
 
 # 重启
@@ -142,8 +142,6 @@ docker compose down
 # 更新镜像
 env1 pull && env1 up -d && env2 up -d && docker image prune -a -f
 ```
-
-> 两个 env 分别对应 `.env`（cli）和 `.env.cli2`（cli2），先拉取最新镜像，再依次重建容器，最后清理旧镜像释放空间。
 
 ## 常见问题
 
