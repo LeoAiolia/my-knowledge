@@ -136,12 +136,31 @@ docker compose restart cli
 # 停止
 docker compose down
 
-# 更新镜像（env1/2 为 docker compose 别名，分别对应 .env 和 .env.cli2）
-env1 pull && env1 up -d && env2 up -d && docker image prune -a -f
+# 更新镜像
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+echo "=== 拉取最新镜像 ==="
+#  env1(使用.env配置)  拉取最新版本
+docker compose --env-file .env pull
+#  env2(使用.env.cli2配置) 拉取最新版本
+docker compose --env-file .env.cli2 pull
+
+echo "=== 重建cli容器 ==="
+docker compose --env-file .env up -d
+
+echo "=== 重建cli2容器 ==="
+docker compose --env-file .env.cli2 up -d
+
+echo "=== 清理旧镜像 ==="
+docker image prune -a -f
+
+echo "=== 更新完成 ==="
+docker compose --env-file .env ps
+docker compose --env-file .env.cli2 ps
 ```
 
-> `env1 pull` 拉取最新镜像，`env1 up -d` 重建 cli 容器，`env2 up -d` 重建 cli2 容器，最后 `docker image prune -a -f` 清理旧镜像释放空间。
-```
+> 两个 env 分别对应 `.env`（cli）和 `.env.cli2`（cli2），先拉取最新镜像，再依次重建容器，最后清理旧镜像释放空间。
 
 ## 常见问题
 
