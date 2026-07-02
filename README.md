@@ -102,3 +102,7 @@
 ### study / ai
 
 - [ai-app-dev-roadmap](study/ai/ai-app-dev-roadmap.md) — AI 应用层开发学习路线图（基于 iOS/Flutter 背景，6 阶段进阶）
+
+### work / yxr
+
+- [cc-docker-intro](work/yxr/cc-docker-intro.md) — 自定义 AI 开发 Docker 环境（tun2socks 透明代理 + Redis 配置同步 + Claude Code/Codex 容器化）
