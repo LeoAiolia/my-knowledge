@@ -87,6 +87,7 @@
 ### develop / flutter
 
 - [cupertino-textfield-content-misalign](develop/flutter/cupertino-textfield-content-misalign.md) — CupertinoTextField 文字 / placeholder 偏上不居中（`_BaselineAlignedStack` 行为 + 修复配方）
+- [flutter-ios-spm-migration](develop/flutter/flutter-ios-spm-migration.md) — Flutter iOS 迁移 SPM：插件 Package.swift product 名必须下划线转连字符（含完整迁移流程 + workspace 次生坑）
 - **faraday_reborn**
   - [list-search-filter](develop/flutter/faraday_reborn/list-search-filter.md) — 列表搜索框（per-tab 模式 + 多 tab 共享模式）
 
