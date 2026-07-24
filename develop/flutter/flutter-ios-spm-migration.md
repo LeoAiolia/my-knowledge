@@ -1,8 +1,13 @@
-# Flutter iOS 迁移 SPM：插件 Package.swift 的 product 命名坑
+# Flutter iOS 迁移 SPM 踩坑记录（product 命名 / FlutterFramework 依赖）
 
-> 更新：2026-07-21 ｜ 标签：flutter, ios, spm, swift-package-manager, cocoapods
+> 更新：2026-07-24 ｜ 标签：flutter, ios, spm, swift-package-manager, cocoapods
 
-Flutter iOS 工程从 CocoaPods 迁移到 Swift Package Manager（SPM）时，最容易踩的坑：**插件 `Package.swift` 里 library（product）名必须把插件名的下划线 `_` 换成连字符 `-`**，否则 SPM 集成直接失败。本文记录完整迁移流程、坑的根因与修复配方。
+Flutter iOS 工程从 CocoaPods 迁移到 Swift Package Manager（SPM）时，最容易踩的两个坑：
+
+1. **插件 `Package.swift` 里 library（product）名必须把插件名的下划线 `_` 换成连字符 `-`**，否则 SPM 集成直接失败（第 2~4 节）。
+2. **新版插件声明的 `FlutterFramework` wrapper 依赖，要求 Flutter SDK ≥ 3.44**，旧工具链构建必炸（第 8 节）。
+
+本文记录完整迁移流程、坑的根因与修复配方。
 
 ## 1. 背景
 
@@ -158,6 +163,83 @@ Exception: Xcode workspace not found.
 | `Xcode workspace not found` | `ios/Runner.xcworkspace` 是否被误删 |
 | 构建仍走 pod install | 工程 CocoaPods 残留未清理（Podfile / xcconfig include） |
 | 新增依赖后构建失败 | 新插件是否支持 SPM |
+| `the package at '.../Packages/.packages/FlutterFramework' cannot be accessed` | 插件声明了 `FlutterFramework` 依赖但 Flutter SDK < 3.44（见第 8 节） |
+
+## 8. 坑二：新版插件的 `FlutterFramework` 依赖 × 旧工具链（Flutter < 3.44 构建必炸）
+
+> 2026-07-24 实录：aster 项目（`.fvmrc` 锁 Flutter 3.35.7）一次依赖升级后 iOS 构建挂掉。
+
+### 8.1 现象
+
+`flutter run` / `flutter build ios` 在 xcodebuild 阶段报：
+
+```
+Error: Unable to get Xcode project information:
+xcodebuild: error: Could not resolve package dependencies:
+  the package at '<project>/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework' cannot be accessed
+  (.../ios/Flutter/ephemeral/Packages/.packages/FlutterFramework doesn't exist in file system)
+```
+
+### 8.2 根因
+
+新版插件（本次命中：`photo_manager 3.10.0`、`qr_code_scanner_plus 2.1.2`）的 `Package.swift` 按官方新规范声明了对 Flutter 引擎 wrapper 包的依赖：
+
+```swift
+dependencies: [
+  .package(name: "FlutterFramework", path: "../FlutterFramework")
+],
+// target 里：
+.product(name: "FlutterFramework", package: "FlutterFramework")
+```
+
+这个 `FlutterFramework` 本地包（把 `Flutter.xcframework` 包装成 SPM binary target）**由 Flutter 工具链在 `pub get` / 构建时自动生成到 `ios/Flutter/ephemeral/Packages/.packages/FlutterFramework`**。自动生成逻辑位于 `flutter_tools/lib/src/macos/swift_package_manager.dart` 的 `createFlutterFrameworkSwiftPackage`。
+
+实测各版本 SDK 源码（grep 验证）：
+
+| Flutter 版本 | 有 `createFlutterFrameworkSwiftPackage` |
+|---|---|
+| 3.35.7 / 3.38.10 / 3.41.9 | ❌ 无 |
+| 3.44.7 | ✅ 有 |
+
+即该能力是 **3.44 周期引入**的（与「3.44 起 SPM 成为默认」同步）。旧工具链会把支持 SPM 的插件软链进 `.packages/`，但不会生成 wrapper 包，SPM 依赖解析阶段直接失败。
+
+版本兼容矩阵：
+
+| 插件 Package.swift | 工具链 < 3.44 | 工具链 ≥ 3.44 |
+|---|---|---|
+| 无 `FlutterFramework` 依赖（旧插件） | ✅ | ✅ |
+| 有 `FlutterFramework` 依赖（新插件） | ❌ 本坑 | ✅ |
+
+### 8.3 为什么 `pub get` 不拦
+
+`photo_manager 3.10.0` 的 pubspec 只声明 `flutter: ">=2.2.0"`，版本求解器看不到工具链层的不兼容，要等 xcodebuild 做 SPM 依赖解析时才爆——**报错点离根因很远**，容易被误导去清缓存、重装 Pod。
+
+### 8.4 修复方案
+
+| 方案 | 做法 | 适用 |
+|---|---|---|
+| A 止血（推荐） | 命中插件降回不含该依赖的旧版本（如 `photo_manager: ^3.6.4`、`qr_code_scanner_plus: ^2.0.10+1`），再 `flutter clean && flutter pub get` | 留在旧 SDK、要立刻能跑 |
+| B 治本 | 升级 Flutter SDK ≥ 3.44（改 `.fvmrc`；CI、私有库、废弃 API 需全面回归） | 团队统一决策后 |
+| C 临时 hack | 手写 `ios/Flutter/ephemeral/Packages/.packages/FlutterFramework/Package.swift`（binaryTarget 指向 SDK 内 `Flutter.xcframework`） | 仅救急：`flutter clean` 即失效，不进 git，团队协作不可持续 |
+
+### 8.5 排查命令（可复用）
+
+```bash
+# 1. 工程侧有没有直接引用（一般没有，用于排除）
+grep -rn "FlutterFramework" ios/
+
+# 2. 找出哪些插件声明了 FlutterFramework 依赖
+for p in ios/Flutter/ephemeral/Packages/.packages/*/; do
+  f="$p/Package.swift"
+  [ -f "$f" ] && grep -q "FlutterFramework" "$f" && echo "$p"
+done
+
+# 3. 确认当前 SDK 工具链是否具备自动生成能力
+grep -rn "createFlutterFrameworkSwiftPackage" \
+  ~/fvm/versions/<sdk版本>/packages/flutter_tools/lib/src/macos/
+```
+
+> 教训：**升级插件前，先看新版本的 `Package.swift` 有没有 `FlutterFramework` 依赖**；有就必须配套 Flutter ≥ 3.44，否则锁回旧版。
 
 ## 参考
 
