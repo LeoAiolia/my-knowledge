@@ -110,6 +110,7 @@
 - [projects-overview](work/yxr/projects-overview.md) — 寓小二主要负责的 APP 项目总览（B 端 / C 端 / CRM，项目名 + 类型 + 仓库地址）
 - [cc-docker-intro](work/yxr/cc-docker-intro.md) — 自定义 AI 开发 Docker 环境（tun2socks 透明代理 + Redis 配置同步 + Claude Code/Codex 容器化）
 - [c-open-lock-video](work/yxr/c-open-lock-video.md) — C 端 APP（aster）开锁功能演示视频
+- [misu-video](work/yxr/misu-video.md) — 米宿定制 APP（B 端）演示视频（绑定 NFC 卡录制）
 
 ### life
 
