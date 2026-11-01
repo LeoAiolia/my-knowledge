@@ -114,13 +114,20 @@ chmod +x /etc/openclash/core/clash_meta
    超时，不是 HTTP/2 本身。**以后终端下载类工具卡死，先用 nslookup 域名 192.168.8.1
    查 DNS 是否秒回，再怀疑协议层。**（注：MSS 钳制规则曾写入
    /etc/openclash/custom/openclash_custom_firewall_rules.sh 但未生效，与本次修复无关）
-10. **Mac 开着 Passepartout(VPN) 时与路由器 clash 冲突**（2026-11-01 确认）：
-   症状：git push / claude update 等卡死，且路由器侧排查一切正常。
-   根因：Mac 本地 VPN 与路由器代理形成双层隧道 + DNS 分裂——绕过 VPN 的查询
-   （nslookup 直问 192.168.8.1）拿到新 fake-ip，走 VPN 的程序拿到旧缓存，
-   出现"nslookup 正常、程序连不上"的精分现象。当年 claude update 的
-   "HTTP/2 卡死"大概率也是它（双层隧道 + MTU 问题）。
-   **在家用路由器代理时，Mac 上把 Passepartout 关掉；出门需要 VPN 时再开，两者别同时跑。**
+10. **Mac 开着 Passepartout(VPN) 时与路由器 clash 冲突**（2026-11-01 确认+解决）：
+    症状：git push / claude update / Google/GitHub 卡死或证书错误，路由器侧排查一切正常。
+    根因：公司 OpenVPN 服务端推送了全局路由，Passepartout 的隧道把 **fake-ip 网段
+    (198.18.0.0/16) 的流量全部截进公司网络**（公司出口在境内 → 境外站点被劫持/
+    掐断），且 VPN DNS 与路由器 DNS 形成解析赛跑。
+    **最终解法（Passepartout 里两处设置，与路由器 clash 永久共存）：**
+    ① profile → 路由设置 → 排除路由 → 添加 `198.18.0.0/16`（fake-ip 流量强制回路由器）
+    ② profile → DNS → 继承自VPN 开 + 仅用于已配置的域名 开（公司 DNS 只解析
+       *.yuxiaor.com，其余走路由器，消灭解析赛跑）
+    配置后：公司内网(192.168.3.x、git/model.ai.yuxiaor.com)走 VPN，Google/GitHub
+    等 一切海外流量走路由器 clash，同时在线互不干扰。
+    （附加发现：OpenClash 的"自定义 Sniffer 文件"需在 LuCI 开启
+    enable_meta_sniffer_custom=1 才会合并，其官方模板的 override-destination:true
+    和 skip-domain 保护名单值得启用）
 
 ## 5. 版本记录
 
