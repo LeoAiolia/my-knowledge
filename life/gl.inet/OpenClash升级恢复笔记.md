@@ -108,6 +108,12 @@ chmod +x /etc/openclash/core/clash_meta
    **防火墙转发**（uci set openclash.config.enable_redirect_dns='2'），让防火墙
    把 53 端口直接转给 clash:7874，dnsmasq 退出 DNS 链路。LuCI 位置：
    OpenClash → 全局设置 → DNS设置 → 本地DNS劫持 → 防火墙转发。
+9. **终端 claude update 卡住的真凶**（2026-11-01 复盘）：曾被诊断为 HTTP/2 问题、
+   靠强制 http/1.1 绕过。改为"防火墙转发"修复 DNS 后，未做任何 HTTP 层改动，
+   claude update 直接成功。结论：根因大概率是 dnsmasq 卡死导致的 DNS 间歇性
+   超时，不是 HTTP/2 本身。**以后终端下载类工具卡死，先用 nslookup 域名 192.168.8.1
+   查 DNS 是否秒回，再怀疑协议层。**（注：MSS 钳制规则曾写入
+   /etc/openclash/custom/openclash_custom_firewall_rules.sh 但未生效，与本次修复无关）
 
 ## 5. 版本记录
 
